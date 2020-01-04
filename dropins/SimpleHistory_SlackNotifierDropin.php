@@ -856,8 +856,8 @@ class SimpleHistory_SlackNotifierDropin
      * Plugin:  Developer Loggers for Simple History
      * Author:  Pär Thernström
      *
-     * @see https://github.com/bonny/Developer-Loggers-for-Simple-History/blob/master/loggers/Slackit.php	Post to Slack yo...
-     * @see Slackit::on_log_insert_context_slackit()														Original class method
+     * @see https://github.com/bonny/Developer-Loggers-for-Simple-History/blob/master/loggers/Slackit.php   Post to Slack yo...
+     * @see Slackit::on_log_insert_context_slackit()                                                        Original class method
      *
      * @param string $current_transient_key
      */
