@@ -141,7 +141,7 @@ add_filter('simple_history/slack_notifier/do_notifier', function($do_notifier, $
 /**
  * Disable notification of any Simple User Logger activity.
  *
- * @param		boolean $do_notifier
+ * @param	boolean $do_notifier
  * @return      boolean
  */
 add_filter('simple_history/slack_notifier/do_notifier/SimpleUserLogger', '__return_false');
@@ -150,7 +150,7 @@ add_filter('simple_history/slack_notifier/do_notifier/SimpleUserLogger', '__retu
 /**
  * Disable notification of Simple Post Logger: updated post activity.
  *
- * @param		boolean $do_notifier
+ * @param	boolean $do_notifier
  * @return      boolean
  */
 add_filter('simple_history/slack_notifier/do_notifier/SimplePostLogger/post_updated', '__return_false');
@@ -160,7 +160,7 @@ add_filter('simple_history/slack_notifier/do_notifier/SimplePostLogger/post_upda
  * Avoid using this filter...
  * Override the Slack Notifier public saved settings used to classify logged events for notification.
  *
- * @param		array	$settings
+ * @param	array	$settings
  * @return      array
  */
 add_filter('simple_history/slack_notifier/saved_settings', function( array $settings = [ 'enabled' => false, 'webhook_url' => '', 'delay' => '+30 seconds', 'messages' => [], 'loglevels' => [] ]) {
@@ -238,6 +238,6 @@ add_filter('simple_history/slack_notifier/saved_settings', function( array $sett
 
 
     // return altered settings
-	return $settings;
+    return $settings;
 
 }, 10, 1);
