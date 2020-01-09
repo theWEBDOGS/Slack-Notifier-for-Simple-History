@@ -343,12 +343,12 @@ class SimpleHistory_SlackNotifierDropin
      *
      * @return array settings
      */
-    protected static function get_settings()
+    protected static function get_saved_settings()
     {
         $settings = [
             'enabled'     => Self::is_enabled(),
-            'delay'       => Self::get_delay(),
             'webhook_url' => Self::get_webhook_url(),
+            'delay'       => Self::get_delay(),
             'loglevels'   => Self::get_query_vars('loglevels'),
             'messages'    => Self::get_query_vars('messages'),
         ];
@@ -395,7 +395,7 @@ class SimpleHistory_SlackNotifierDropin
          * Applied filter:
          *  'simple_history/slack_notifier/saved_settings'
          */
-        $saved_settings = Self::get_settings();
+        $saved_settings = Self::get_saved_settings();
 
         /**
          * Filter notifiers to include additional option sets.
@@ -670,7 +670,7 @@ class SimpleHistory_SlackNotifierDropin
 
 
             // Bail if webhook URL is not set or invalid.
-            if (!isset($settings['webhook_url']) || empty($settings['webhook_url']) || !is_string($settings['webhook_url']) || !wp_http_validate_url($settings['webhook_url'])) {
+            if (!isset($settings['webhook_url']) || empty($settings['webhook_url']) || !wp_http_validate_url($settings['webhook_url'])) {
                 continue;
             }
 
@@ -821,7 +821,7 @@ class SimpleHistory_SlackNotifierDropin
 
 
             $callback          = Self::FILTER_HOOK_PREFIX . 'notify_slack';
-            $transient_key     = 'sh_' . array_md5($settings, $callback . '_2');
+            $transient_key     = 'sh_' . array_md5($settings, null, $callback . '_2');
 
 
             if (false !== ($stored_query_args = get_transient($transient_key))) {
@@ -910,7 +910,7 @@ class SimpleHistory_SlackNotifierDropin
             $log_query_args    = '';
 
 
-            $transient_key     = 'sh_' . array_md5($settings, $callback . '_2');
+            $transient_key     = 'sh_' . array_md5($settings, null, $callback . '_2');
             $slack_webhook_url = isset($settings['webhook_url']) ? $settings['webhook_url'] : null;
 
 
@@ -959,21 +959,11 @@ class SimpleHistory_SlackNotifierDropin
             foreach ($log_rows as $row) {
 
                 $context     = $row->context;
-                $logger      = $simpleHistory->getInstantiatedLoggerBySlug($row->logger);
-                $logger_slug = isset($logger->slug) ? $logger->slug : null;
-
-
-                // Skip log messages from Simple Options Logger if $context['option'] === 'cron'.
-                if ($logger_slug === 'SimpleOptionsLogger' && isset($context['option']) && $context['option'] === 'cron') {
-                    continue;
-                }
-
-
                 $level       = empty($row->level)     ? '' : $row->level;
                 $initiator   = empty($row->initiator) ? '' : $row->initiator;
 
+                $logger      = $simpleHistory->getInstantiatedLoggerBySlug($row->logger);
                 $message     = SimpleLogger::interpolate($row->message, $context);
-                $remote_addr = empty($context['_server_remote_addr']) ? '' : $context['_server_remote_addr'];
 
 
                 $color       = '';
@@ -1013,7 +1003,9 @@ class SimpleHistory_SlackNotifierDropin
                         break;
                 }
 
-                /* $fields = [
+                /* 
+                $remote_addr = empty($context['_server_remote_addr']) ? '' : $context['_server_remote_addr'];
+                $fields = [
                     [
                         'title' => 'Site',
                         'value' => home_url(),
@@ -1026,7 +1018,8 @@ class SimpleHistory_SlackNotifierDropin
                     ],
                 ]; */
 
-                /* $fields = [];
+                /* 
+                $fields = [];
                 foreach ($context as $title => $value) {
                     $fields[] = [
                         'title' => $title,
