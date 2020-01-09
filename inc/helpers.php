@@ -10,7 +10,7 @@ if (!function_exists('array_md5')) {
      * @param	boolean	$use_serialize	option toString method using serialize
      * @return	string	md5 hash
      */
-    function array_md5(array $array, string $prepend_string  = '', string $append_string  = '', bool $use_serialize = false)
+    function array_md5(array $array, $prepend_string = '', $append_string = '', bool $use_serialize = false)
     {
         array_multisort($array);
         $array_string = $use_serialize ? serialize($array) : json_encode($array);
