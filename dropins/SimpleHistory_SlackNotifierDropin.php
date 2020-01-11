@@ -70,9 +70,7 @@ class SimpleHistory_SlackNotifierDropin
     {
         $this->sh = $sh;
 
-        if (is_admin()) {
-            $this->init();
-        }
+        $this->init();
     }
 
 
@@ -86,13 +84,15 @@ class SimpleHistory_SlackNotifierDropin
             add_action('simple_history/log/inserted', [$this, 'on_log_inserted'], 100, 3);
         }
 
-        // Check if settings are public
-        if (Self::is_public()) {
-            add_action('init', [$this, 'add_settings_tab']);
-            add_action('simple_history/enqueue_admin_scripts', [$this, 'enqueue_admin_scripts']);
-        }
+        if (is_admin()) {
+            // Check if settings are public
+            if (Self::is_public()) {
+                add_action('init', [$this, 'add_settings_tab']);
+                add_action('simple_history/enqueue_admin_scripts', [$this, 'enqueue_admin_scripts']);
+            }
 
-        add_action('admin_menu', [$this, 'add_settings'], 11);
+            add_action('admin_menu', [$this, 'add_settings'], 11);
+        }
     }
 
 
@@ -965,6 +965,10 @@ class SimpleHistory_SlackNotifierDropin
                 $logger      = $simpleHistory->getInstantiatedLoggerBySlug($row->logger);
                 $message     = SimpleLogger::interpolate($row->message, $context);
 
+                // Skip log messages from Simple Options Logger if $context['option'] === 'cron'.
+                if ($row->logger === 'SimpleOptionsLogger' && isset($context['option']) && $context['option'] === 'cron') {
+                    continue;
+                }
 
                 $color       = '';
 
