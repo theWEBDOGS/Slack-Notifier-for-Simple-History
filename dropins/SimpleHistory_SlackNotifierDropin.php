@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright 2019  Jacob Vega/Canote (email: jvcanote@gmail.com)
+ * Copyright 2020  WEBDOGS LLC. (email: thedogs@webdogs.com)
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2, as
  * published by the Free Software Foundation.
@@ -66,11 +66,10 @@ class SimpleHistory_SlackNotifierDropin
 
 
 
-    public function __construct($sh)
+    public function __construct($sh = null)
     {
-        $this->sh = $sh;
-
-        $this->init();
+        $this->sh = $sh
+        and $this->init();
     }
 
 
@@ -100,8 +99,7 @@ class SimpleHistory_SlackNotifierDropin
 
     public function enqueue_admin_scripts()
     {
-        // wp_enqueue_script(Self::SETTINGS_OPTION_PREFIX . 'dropin', $file_url . Self::SETTINGS_OPTION_PREFIX . 'dropin.js', array( 'jquery' ), SIMPLE_HISTORY_VERSION, true);
-        wp_enqueue_style(Self::SETTINGS_OPTION_PREFIX . 'dropin', Self::FILE_URL . 'css/' . Self::SETTINGS_OPTION_PREFIX . 'dropin.css', null, SIMPLE_HISTORY_VERSION);
+        wp_enqueue_style(Self::SETTINGS_OPTION_PREFIX . 'dropin', Self::FILE_URL . 'css/' . Self::SETTINGS_OPTION_PREFIX . 'dropin.css', null, SIMPLE_HISTORY_VERSION);         // wp_enqueue_script(Self::SETTINGS_OPTION_PREFIX . 'dropin', $file_url . Self::SETTINGS_OPTION_PREFIX . 'dropin.js', array( 'jquery' ), SIMPLE_HISTORY_VERSION, true);
     }
 
 
@@ -112,11 +110,10 @@ class SimpleHistory_SlackNotifierDropin
      */
     public function add_settings_tab()
     {
-
         $this->sh->registerSettingsTab([
             'slug' => Self::SLUG,
             'name' => __('Notifier', 'simple-history'),
-            'function' => [$this, 'settings_tab_output']
+            'function' => [$this, Self::SLUG . '_settings_tab_output']
         ]);
     }
 
@@ -128,116 +125,124 @@ class SimpleHistory_SlackNotifierDropin
      */
     public function add_settings()
     {
+        // Settings field parameters
+        $settings = $this->get_settings();
 
-        // we register a setting to keep track of
-        // the notifications status (enabled/disabled)
-        register_setting(
-            Self::SETTINGS_GENERAL_OPTION_GROUP,
-            Self::SETTINGS_OPTION_PREFIX . 'enabled',
-            [
-                'type' => 'boolean',
-                'description' => __('Notifier is active when checked.', 'simple-history'),
-                'sanitize_callback' => 'boolval',
-                'show_in_rest' => false,
-                'default' => false,
-            ]
-        );
-
-        register_setting(
-            Self::SETTINGS_GENERAL_OPTION_GROUP,
-            Self::SETTINGS_OPTION_PREFIX . 'webhook_url',
-            [
-                'type' => 'string',
-                'description' => __('The webhook URL for posting the notifications.', 'simple-history'),
-                'sanitize_callback' => 'sanitize_url',
-                'show_in_rest' => false,
-                'default' => '',
-            ]
-        );
-
-        register_setting(
-            Self::SETTINGS_GENERAL_OPTION_GROUP,
-            Self::SETTINGS_OPTION_PREFIX . 'delay',
-            [
-                'type' => 'string',
-                'description' => __('An amount of time to delay sending notifications.', 'simple-history'),
-                'sanitize_callback' => [$this, 'sanitize_' . Self::SLUG . '_delay'],
-                'show_in_rest' => false,
-                'default' => '+30 seconds',
-            ]
-        );
-
-        register_setting(
-            Self::SETTINGS_GENERAL_OPTION_GROUP,
-            Self::SETTINGS_OPTION_PREFIX . 'query_vars',
-            [
-                'type' => 'string',
-                'description' => __('The query string used to filter which log occurrences will trigger the notifier.', 'simple-history'),
-                'sanitize_callback' => 'serialize',
-                'show_in_rest' => false,
-                'default' => 'a:2:{s:9:"loglevels";a:0:{}s:8:"messages";a:0:{}}',
-            ]
-        );
+        foreach($settings as $setting) {
+            register_setting(
+                Self::SETTINGS_GENERAL_OPTION_GROUP,
+                Self::SETTINGS_OPTION_PREFIX . $setting['name'],
+                $setting['setting_args']
+            );
+        }
 
         /**
          * Start new section for notifications
          */
-
         add_settings_section(
             Self::SETTINGS_SECTION_GENERAL_ID,
             _x('Slack notification settings', 'notifier settings headline', 'simple-history'),
-            [$this, 'do_settings_section'],
+            [$this, Self::SLUG . '_settings_section_output'],
             Self::SETTINGS_MENU_SLUG
         );
 
         $args = [];
 
-        // If notifications is not activated
-        // the other fields are hidden.
-        if (!Self::is_enabled()) {
-            $args['class'] = 'hidden';
+        foreach($settings as $setting) {
+
+            add_settings_field(
+                Self::SETTINGS_OPTION_PREFIX . $setting['name'],
+                $setting['title'],
+                [$this, Self::SLUG . $setting['callback']],
+                Self::SETTINGS_MENU_SLUG,
+                Self::SETTINGS_SECTION_GENERAL_ID,
+                $args + ['label_for' => Self::SETTINGS_OPTION_PREFIX . $setting['name']]
+            );
+
+            // If notifications is not activated
+            // the other fields are hidden.
+            if (!Self::is_enabled()) {
+                $args['class'] = 'hidden';
+            }
+
         }
-
-        // Enable/Disabled notifications
-        add_settings_field(
-            Self::SETTINGS_OPTION_PREFIX . 'enabled',
-            __('Enable', 'simple-history'),
-            [$this, Self::SLUG . '_enabled_settings_field'],
-            Self::SETTINGS_MENU_SLUG,
-            Self::SETTINGS_SECTION_GENERAL_ID,
-            ['label_for' => Self::SETTINGS_OPTION_PREFIX . 'enabled']
-        );
-
-        // Notifications webhook
-        add_settings_field(
-            Self::SETTINGS_OPTION_PREFIX . 'webhook_url',
-            __('WebHook', 'simple-history'),
-            [$this, Self::SLUG . '_webhook_url_settings_field'],
-            Self::SETTINGS_MENU_SLUG,
-            Self::SETTINGS_SECTION_GENERAL_ID,
-            $args + ['label_for' => Self::SETTINGS_OPTION_PREFIX . 'webhook_url']
-        );
-
-        // Delay before notifications
-        add_settings_field(
-            Self::SETTINGS_OPTION_PREFIX . 'delay',
-            __('Send notification...', 'simple-history'),
-            [$this, Self::SLUG . '_delay_settings_field'],
-            Self::SETTINGS_MENU_SLUG,
-            Self::SETTINGS_SECTION_GENERAL_ID,
-            $args + ['label_for' => Self::SETTINGS_OPTION_PREFIX . 'delay']
-        );
-
-        // Notifications query vars
-        add_settings_field(
-            Self::SETTINGS_OPTION_PREFIX . 'query_vars',
-            __('Log levels', 'simple-history'),
-            [$this, Self::SLUG . '_query_vars_settings_field'],
-            Self::SETTINGS_MENU_SLUG,
-            Self::SETTINGS_SECTION_GENERAL_ID,
-            $args + ['label_for' => Self::SETTINGS_OPTION_PREFIX . 'query_vars' . '_loglevels']
-        );
     } // settings
+
+
+
+
+    /**
+     * Get settings API configuration parameters.
+     *
+     * @return array $settings basic values.
+     */
+    public function get_settings()
+    {
+        $setting = [
+
+            // Enable/Disabled notifications
+
+            [
+                'name'         => 'enabled',
+                'title'        => __('Enable', 'simple-history'),
+                'callback'     => '_enabled_settings_field_output',
+                'setting_args' => [
+                    'type'              => 'boolean',
+                    'description'       => __('Notifier is active when checked.', 'simple-history'),
+                    'sanitize_callback' => 'boolval',
+                    'show_in_rest'      => false,
+                    'default'           => false,
+                ],
+            ],
+
+            // Notifications webhook
+
+            [
+                'name'         => 'webhook_url',
+                'title'        => __('WebHook', 'simple-history'),
+                'callback'     => '_webhook_url_settings_field_output',
+                'setting_args' => [
+                    'type'              => 'string',
+                    'description'       => __('The webhook URL for posting the notifications.', 'simple-history'),
+                    'sanitize_callback' => 'sanitize_url',
+                    'show_in_rest'      => false,
+                    'default'           => '',
+                ],
+            ],
+
+            // Delay before notifications
+
+            [
+                'name'         => 'delay',
+                'title'        => __('Send notification...', 'simple-history'),
+                'callback'     => '_delay_settings_field_output',
+                'setting_args' => [
+                    'type'              => 'string',
+                    'description'       => __('An amount of time to delay sending notifications.', 'simple-history'),
+                    'sanitize_callback' => [$this, 'sanitize_' . Self::SLUG . '_delay'],
+                    'show_in_rest'      => false,
+                    'default'           => '+30 seconds',
+                ],
+            ],
+
+            // Notifications query vars
+
+            [
+                'name'         => 'query_vars',
+                'title'        => __('Log levels', 'simple-history'),
+                'callback'     => '_query_vars_settings_field_output',
+                'setting_args' => [
+                    'type'              => 'string',
+                    'description'       => __('The query string used to filter which log occurrences will trigger the notifier.', 'simple-history'),
+                    'sanitize_callback' => 'serialize',
+                    'show_in_rest'      => false,
+                    'default'           => 'a:2:{s:9:"loglevels";a:0:{}s:8:"messages";a:0:{}}',
+                ],
+            ],
+        ];
+
+        return $setting;
+    }
 
 
 
@@ -393,7 +398,7 @@ class SimpleHistory_SlackNotifierDropin
     {
         /**
          * Applied filter:
-         *  'simple_history/slack_notifier/saved_settings'
+         *  - 'simple_history/slack_notifier/saved_settings'
          */
         $saved_settings = Self::get_saved_settings();
 
@@ -423,7 +428,7 @@ class SimpleHistory_SlackNotifierDropin
     /**
      * Output for settings tab.
      */
-    public function settings_tab_output()
+    public function slack_notifier_settings_tab_output()
     {
         include Self::FILE_PATH . 'templates/settings.php';
     }
@@ -431,207 +436,88 @@ class SimpleHistory_SlackNotifierDropin
 
 
 
-    public function do_settings_section()
+    public function slack_notifier_settings_section_output()
     {
-        /**
-         * Settings section intro.
-         */
-    ?>
-
-        <p>
-            <?php _e('Posts logged events to a Slack channel.', 'simple-history') ?>
-            <?php _e('Only share with trusted channels. Notices can contain sensitive or confidential information.', 'simple-history') ?>
-        </p>
-
-    <?php
-
+        include Self::FILE_PATH . 'templates/section.php';
     }
 
 
 
 
-    public function slack_notifier_enabled_settings_field()
+    public function slack_notifier_enabled_settings_field_output()
     {
         /**
          * Enable notifier.
          *
          * @param boolean enabled.
          */
-        $notifier_enabled = Self::is_enabled();
-    ?>
+        $notifier_enabled = Self::is_enabled(); // print_r($notifier_enabled);
 
-        <input <?php checked($notifier_enabled, true) ?> value="1" type="checkbox" id="<?php echo Self::SETTINGS_OPTION_PREFIX ?>enabled" name="<?php echo Self::SETTINGS_OPTION_PREFIX ?>enabled" onchange="jQuery(':input',jQuery(this).parents('.form-table')).not(this).parents('tr').toggleClass('hidden',!jQuery(this).is(':checked'))" />
-        <label for="<?php echo Self::SETTINGS_OPTION_PREFIX ?>enabled">
-            <?php _e('Enable Slack notifications', 'simple-history') ?>
-        </label>
-
-    <?php
-
+        include Self::FILE_PATH . 'templates/enabled-field.php';
     }
 
 
 
 
-    public function slack_notifier_webhook_url_settings_field()
+    public function slack_notifier_webhook_url_settings_field_output()
     {
         /**
          * Notification webhook URL.
          *
          * @param string URL.
          */
-        $notifier_webhook_url = Self::get_webhook_url();
-    ?>
+        $notifier_webhook_url = Self::get_webhook_url(); // print_r($notifier_webhook_url);
 
-        <p>
-            <input id="<?php echo Self::SETTINGS_OPTION_PREFIX ?>webhook_url" type="url" class="regular-text ltr" placeholder="<?php esc_attr_e('https://hooks.slack.com/services/ABC123/B123456/O4j88fj33bbbbjjkkfssd', 'simple-history') ?>" name="<?php echo Self::SETTINGS_OPTION_PREFIX ?>webhook_url" value="<?php echo esc_attr($notifier_webhook_url) ?>" />
-        </p>
-
-        <p class="description">
-            <small><?php printf(__('Create an %1$sincoming WebHook%2$s and then paste the WebHook URL here.', 'simple-history'), '<a href="https://my.slack.com/services/new/incoming-webhook/">', '</a>') ?></small>
-        </p>
-
-    <?php
-
+        include Self::FILE_PATH . 'templates/webhook-url-field.php';
     }
 
 
 
 
-    public function slack_notifier_delay_settings_field()
+    public function slack_notifier_delay_settings_field_output()
     {
         /**
          * Notification delay duration.
          *
          * @param string delay.
          */
-        $notifier_delay = Self::get_delay();
-    ?>
+        $notifier_delay = Self::get_delay(); // print_r($notifier_delay);
 
-        <p>
-            <select id="<?php echo Self::SETTINGS_OPTION_PREFIX ?>delay" name="<?php echo Self::SETTINGS_OPTION_PREFIX ?>delay" class="SimpleHistory__filters__filter SimpleHistory__filters__filter--date regular-text" placeholder="<?php _e('No delay', 'simple-history') ?>">
-                <option <?php selected($notifier_delay, '+10 seconds') ?> value="+10 seconds"><?php _ex('After 10 seconds', 'Option duration', 'simple-history') ?></option>
-                <option <?php selected($notifier_delay, '+30 seconds') ?> value="+30 seconds"><?php _ex('After 30 seconds', 'Option duration', 'simple-history') ?></option>
-                <option <?php selected($notifier_delay, '+1 minute') ?> value="+1 minute"><?php _ex('After 1 minute', 'Option duration', 'simple-history') ?></option>
-                <option <?php selected($notifier_delay, '+5 minutes') ?> value="+5 minutes"><?php _ex('After 5 minutes', 'Option duration', 'simple-history') ?></option>
-                <option <?php selected($notifier_delay, '+30 minutes') ?> value="+30 minutes"><?php _ex('After 30 minutes', 'Option duration', 'simple-history') ?></option>
-                <option <?php selected($notifier_delay, '+1 hour') ?> value="+1 hour"><?php _ex('After an hour', 'Option duration', 'simple-history') ?></option>
-                <option <?php selected($notifier_delay, '+1 day') ?> value="+1 day"><?php _ex('After a day', 'Option duration', 'simple-history') ?></option>
-            </select>
-        </p>
-
-    <?php
-
+        include Self::FILE_PATH . 'templates/delay-field.php';
     }
 
 
 
 
-    public function slack_notifier_query_vars_settings_field($args)
+    public function slack_notifier_query_vars_settings_field_output($args)
     {
         /**
          * Filter to control what the default loglevels are.
          *
          * @param array Array with loglevel sugs. Default empty = show all.
          */
-        $notifier_query_loglevels = Self::get_query_vars('loglevels');
-    ?>
+        $notifier_query_loglevels = Self::get_query_vars('loglevels'); // print_r($notifier_query_loglevels);
 
-        <p>
-            <select id="<?php echo Self::SETTINGS_OPTION_PREFIX ?>query_vars_loglevels" name="<?php echo Self::SETTINGS_OPTION_PREFIX ?>query_vars[loglevels][]" class="SimpleHistory__filters__filter SimpleHistory__filters__filter--loglevel regular-text" placeholder="<?php _e('All log levels', 'simple-history') ?>" multiple>
-                <option <?php selected(in_array('debug', $notifier_query_loglevels), true) ?> value="debug" data-color="#CEF6D8"><?php echo $this->sh->getLogLevelTranslated('Debug') ?></option>
-                <option <?php selected(in_array('info', $notifier_query_loglevels), true) ?> value="info" data-color="#FFFF"><?php echo $this->sh->getLogLevelTranslated('Info') ?></option>
-                <option <?php selected(in_array('notice', $notifier_query_loglevels), true) ?> value="notice" data-color="#DBDBB7"><?php echo $this->sh->getLogLevelTranslated('Notice') ?></option>
-                <option <?php selected(in_array('warning', $notifier_query_loglevels), true) ?> value="warning" data-color="#F7D358"><?php echo $this->sh->getLogLevelTranslated('Warning') ?></option>
-                <option <?php selected(in_array('error', $notifier_query_loglevels), true) ?> value="error" data-color="#F79F81"><?php echo $this->sh->getLogLevelTranslated('Error') ?></option>
-                <option <?php selected(in_array('critical', $notifier_query_loglevels), true) ?> value="critical" data-color="#FA5858"><?php echo $this->sh->getLogLevelTranslated('Critical') ?></option>
-                <option <?php selected(in_array('alert', $notifier_query_loglevels), true) ?> value="alert" data-color="#C74545"><?php echo $this->sh->getLogLevelTranslated('Alert') ?></option>
-                <option <?php selected(in_array('emergency', $notifier_query_loglevels), true) ?> value="emergency" data-color="#DF0101"><?php echo $this->sh->getLogLevelTranslated('Emergency') ?></option>
-            </select>
-        </p>
-        </td>
-        </tr>
-        <tr class="<?php echo esc_attr($args['class']) ?>">
-            <th scope="row">
-                <label for="<?php echo Self::SETTINGS_OPTION_PREFIX ?>query_vars_messages">
-                    <?php _e('Message types', 'simple-history') ?>
-                </label>
-            </th>
-            <td>
+        /**
+         * Notifier query messages.
+         *
+         * Message are in format: LoggerSlug:MessageKey
+         * For example:
+         *  - SimplePluginLogger:plugin_activated
+         *  - SimpleCommentsLogger:user_comment_added
+         *
+         * @param array Array with log message slugs. Default empty = show all.
+         */
+        $notifier_query_messages = Self::get_query_vars('messages'); // print_r($notifier_query_messages);
 
-                <?php
-                $loggers_user_can_read = $this->sh->getLoggersThatUserCanRead();
+        /**
+         * Loggers the current user has access to read.
+         *
+         * @param array Array with loggers that user can read.
+         */
+        $loggers_user_can_read = $this->sh->getLoggersThatUserCanRead();
 
-                /**
-                 * Notifier query messages.
-                 *
-                 * Message are in format: LoggerSlug:MessageKey
-                 * For example:
-                 *  - SimplePluginLogger:plugin_activated
-                 *  - SimpleCommentsLogger:user_comment_added
-                 *
-                 * @param array Array with log message slugs. Default empty = show all.
-                 */
-                $notifier_query_messages = Self::get_query_vars('messages');
-                ?>
-
-                <p>
-                    <select id="<?php echo Self::SETTINGS_OPTION_PREFIX ?>query_vars_messages" name="<?php echo Self::SETTINGS_OPTION_PREFIX ?>query_vars[messages][]" class="SimpleHistory__filters__filter SimpleHistory__filters__filter--logger regular-text" placeholder="<?php _e('All messages', 'simple-history') ?>" multiple>
-
-                        <?php
-                        foreach ($loggers_user_can_read as $logger) {
-                            $logger_info = $logger['instance']->getInfo();
-                            $logger_slug = $logger['instance']->slug;
-
-                            // Get labels for logger
-                            if (isset($logger_info['labels']['search'])) {
-                                printf(
-                                    '<optgroup label="%1$s">',
-                                    esc_attr($logger_info['labels']['search']['label'])
-                                );
-
-                                // If all activity
-                                if (!empty($logger_info['labels']['search']['label_all'])) {
-                                    $arr_all_search_messages = array();
-                                    foreach ($logger_info['labels']['search']['options'] as $option_key => $option_messages) {
-                                        $arr_all_search_messages = array_merge($arr_all_search_messages, $option_messages);
-                                    }
-
-                                    foreach ($arr_all_search_messages as $key => $val) {
-                                        $arr_all_search_messages[$key] = $logger_slug . ':' . $val;
-                                    }
-
-                                    printf(
-                                        '<option value="%2$s"%3$s>%1$s</option>',
-                                        esc_attr($logger_info['labels']['search']['label_all']), // 1
-                                        esc_attr(implode(',', $arr_all_search_messages)), // 2
-                                        selected(in_array(implode(',', $arr_all_search_messages), $notifier_query_messages), true, false) // 3
-                                    );
-                                }
-
-                                // For each specific search option
-                                foreach ($logger_info['labels']['search']['options'] as $option_key => $option_messages) {
-                                    foreach ($option_messages as $key => $val) {
-                                        $option_messages[$key] = $logger_slug . ':' . $val;
-                                    }
-
-                                    $str_option_messages = implode(',', $option_messages);
-                                    printf(
-                                        '<option value="%2$s"%3$s>%1$s</option>',
-                                        esc_attr($option_key), // 1
-                                        esc_attr($str_option_messages), // 2
-                                        selected(in_array($str_option_messages, $notifier_query_messages), true, false) // 3
-                                    );
-                                }
-
-                                printf('</optgroup>');
-                            } // End if().
-                        } // End foreach().
-                        ?>
-                    </select>
-                </p>
-
-        <?php
-
+        include Self::FILE_PATH . 'templates/query-vars-fields.php';
     }
 
 
@@ -670,7 +556,7 @@ class SimpleHistory_SlackNotifierDropin
 
 
             // Bail if webhook URL is not set or invalid.
-            if (!isset($settings['webhook_url']) || empty($settings['webhook_url']) || !wp_http_validate_url($settings['webhook_url'])) {
+            if (!isset($settings['webhook_url']) || !is_string($settings['webhook_url']) || !wp_http_validate_url($settings['webhook_url'])) {
                 continue;
             }
 
@@ -754,11 +640,11 @@ class SimpleHistory_SlackNotifierDropin
              * Easy shortcut method to disable notification of messages from a specific logger.
              *
              * Example filter name:
-             * simple_history/slack_notifier/do_notifier/SimpleUserLogger
-             * simple_history/slack_notifier/do_notifier/SimplePostLogger
+             *  - simple_history/slack_notifier/do_notifier/SimpleUserLogger
+             *  - simple_history/slack_notifier/do_notifier/SimplePostLogger
              *
              * Example to disable notification of any user login/logout/failed login activity:
-             * add_filter('simple_history/slack_notifier/do_notifier/SimpleUserLogger', '__return_false')
+             *  - add_filter('simple_history/slack_notifier/do_notifier/SimpleUserLogger', '__return_false')
              *
              * @var	boolean	$do_notifier
              */
@@ -775,8 +661,8 @@ class SimpleHistory_SlackNotifierDropin
              * Easy shortcut method to disable notification of messages from a specific logger and message.
              *
              * Example filter name:
-             * simple_history/slack_notifier/do_notifier/SimpleUserLogger/user_logged_in
-             * simple_history/slack_notifier/do_notifier/SimplePostLogger/post_updated
+             *  - simple_history/slack_notifier/do_notifier/SimpleUserLogger/user_logged_in
+             *  - simple_history/slack_notifier/do_notifier/SimplePostLogger/post_updated
              *
              * @var	boolean	$do_notifier
              */
@@ -819,9 +705,10 @@ class SimpleHistory_SlackNotifierDropin
             // Encode log query arguments.
             $log_query_args = base64_encode(serialize($log_query_args));
 
-
             $callback          = Self::FILTER_HOOK_PREFIX . 'notify_slack';
-            $transient_key     = 'sh_' . array_md5($settings, null, $callback . '_2');
+            $network_blog      = sprintf('%d_%d_', get_current_network_id(), get_current_blog_id());
+
+            $transient_key     = 'sh_' . array_md5($settings, $network_blog, $callback . '_2');
 
 
             if (false !== ($stored_query_args = get_transient($transient_key))) {
@@ -886,8 +773,16 @@ class SimpleHistory_SlackNotifierDropin
 
 
         /**
+         * Current network and blog ids.
+         *
+         * @var	string	$network_blog
+         */
+        $network_blog = sprintf('%d_%d_', get_current_network_id(), get_current_blog_id());
+
+
+        /**
          * Current action hook:
-         * 'simple_history/slack_notifier/notify_slack'
+         *  - 'simple_history/slack_notifier/notify_slack'
          *
          * @var	string	$callback
          */
@@ -910,7 +805,7 @@ class SimpleHistory_SlackNotifierDropin
             $log_query_args    = '';
 
 
-            $transient_key     = 'sh_' . array_md5($settings, null, $callback . '_2');
+            $transient_key     = 'sh_' . array_md5($settings, $network_blog, $callback . '_2');
             $slack_webhook_url = isset($settings['webhook_url']) ? $settings['webhook_url'] : null;
 
 
@@ -1007,7 +902,7 @@ class SimpleHistory_SlackNotifierDropin
                         break;
                 }
 
-                /* 
+                /*
                 $remote_addr = empty($context['_server_remote_addr']) ? '' : $context['_server_remote_addr'];
                 $fields = [
                     [
@@ -1022,7 +917,7 @@ class SimpleHistory_SlackNotifierDropin
                     ],
                 ]; */
 
-                /* 
+                /*
                 $fields = [];
                 foreach ($context as $title => $value) {
                     $fields[] = [

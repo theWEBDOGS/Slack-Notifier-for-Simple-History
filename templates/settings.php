@@ -1,3 +1,17 @@
+<?php
+/**
+ * The template for displaying a form with all the sections for a particular settings tab.
+ *
+ * @author  WEBDOGS
+ * @package SimpleHistory/SlackNotifierDropin/Templates
+ * @version 0.0.1
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+?>
+
 <form method="post" action="options.php" class="SimpleHistory__filters__form SimpleHistory__filters">
 
     <?php

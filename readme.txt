@@ -1,5 +1,5 @@
 === Slack Notifier for Simple History ===
-Contributors: jvcanote
+Contributors: WEBDOGS
 Tags: simple history, developer, admins, administrators, debug,
 Requires at least: 4.4
 Tested up to: 4.5
@@ -23,6 +23,6 @@ you can leverage Slack to see what is happening on any sites you are using Simpl
 
 ## Changelog
 
-= 0.1 (January 2020) =
+= 0.0.1 (January 2020) =
 
 - First public version. Enjoy!
