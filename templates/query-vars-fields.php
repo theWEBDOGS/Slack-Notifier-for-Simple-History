@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 ?>
+
         <p>
             <select id="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars" name="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars[loglevels][]" class="SimpleHistory__filters__filter SimpleHistory__filters__filter--loglevel regular-text" placeholder="<?php esc_attr_e('All log levels', 'simple-history') ?>" multiple>
                 <option <?php selected(in_array('debug', $notifier_query_loglevels), true) ?> value="debug" data-color="#CEF6D8"><?php echo $this->sh->getLogLevelTranslated('Debug') ?></option>
@@ -23,7 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <option <?php selected(in_array('emergency', $notifier_query_loglevels), true) ?> value="emergency" data-color="#DF0101"><?php echo $this->sh->getLogLevelTranslated('Emergency') ?></option>
             </select>
         </p>
-</td></tr><tr class="<?php echo esc_attr($args['class']) ?>"><th scope="row"><label for="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars_messages"><?php _e('Message types', 'simple-history') ?></label></th><td>        <p>
+</td></tr><tr<?php echo $tr_class ?>><th scope="row"><label for="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars_messages"><?php _e('Message types', 'simple-history') ?></label></th><td>
+        <p>
             <select id="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars_messages" name="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars[messages][]" class="SimpleHistory__filters__filter SimpleHistory__filters__filter--logger regular-text" placeholder="<?php esc_attr_e('All messages', 'simple-history') ?>" multiple><?php
                 foreach ($loggers_user_can_read as $logger) :
                     $logger_info = $logger['instance']->getInfo();
@@ -32,6 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     // Get labels for logger
                     if (isset($logger_info['labels']['search'])) : ?>
+
                 <optgroup label="<?php echo esc_attr($logger_info['labels']['search']['label']) ?>"><?php
 
                         // If all activity
@@ -58,12 +61,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }
 
                         foreach ($loggger_option_messages as $option_key => $str_option_messages) : ?>
+
                     <option <?php selected(in_array($str_option_messages, $notifier_query_messages), true) ?> value="<?php echo esc_attr($str_option_messages) ?>"><?php echo $option_key ?></option><?php
 
                         endforeach; ?>
+
                 </optgroup><?php
 
                     endif;
                 endforeach; ?>
+
             </select>
         </p>

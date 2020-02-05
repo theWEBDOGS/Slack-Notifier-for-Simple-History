@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 ?>
+
         <p>
             <select id="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>delay" name="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>delay" class="SimpleHistory__filters__filter SimpleHistory__filters__filter--date regular-text" placeholder="<?php esc_attr_e('Default delay', 'simple-history') ?>">
                 <option <?php selected($notifier_delay, '+10 seconds') ?> value="+10 seconds"><?php _ex('After 10 seconds', 'Option duration', 'simple-history') ?></option>
