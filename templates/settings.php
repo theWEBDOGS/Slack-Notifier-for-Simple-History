@@ -4,7 +4,7 @@
  *
  * @author  WEBDOGS
  * @package SimpleHistory/SlackNotifierDropin/Templates
- * @version 0.0.1
+ * @since   0.0.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

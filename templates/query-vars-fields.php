@@ -4,7 +4,7 @@
  *
  * @author  WEBDOGS
  * @package SimpleHistory/SlackNotifierDropin/Templates
- * @version 0.0.1
+ * @since   0.0.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,16 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <option <?php selected(in_array('emergency', $notifier_query_loglevels), true) ?> value="emergency" data-color="#DF0101"><?php echo $this->sh->getLogLevelTranslated('Emergency') ?></option>
             </select>
         </p>
-    </td>
-</tr>
-<tr class="<?php echo esc_attr($args['class']) ?>">
-    <th scope="row">
-        <label for="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars_messages">
-            <?php _e('Message types', 'simple-history') ?>
-        </label>
-    </th>
-    <td>
-        <p>
+</td></tr><tr class="<?php echo esc_attr($args['class']) ?>"><th scope="row"><label for="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars_messages"><?php _e('Message types', 'simple-history') ?></label></th><td>        <p>
             <select id="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars_messages" name="<?php echo SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX ?>query_vars[messages][]" class="SimpleHistory__filters__filter SimpleHistory__filters__filter--logger regular-text" placeholder="<?php esc_attr_e('All messages', 'simple-history') ?>" multiple><?php
                 foreach ($loggers_user_can_read as $logger) :
                     $logger_info = $logger['instance']->getInfo();

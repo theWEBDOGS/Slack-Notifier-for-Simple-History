@@ -23,6 +23,12 @@ you can leverage Slack to see what is happening on any sites you are using Simpl
 
 ## Changelog
 
+= 0.0.2 (February 2020) =
+
+- Add multisite support.
+- Initiate option values during activation.
+- Generate layout from template files.
+
 = 0.0.1 (January 2020) =
 
 - First public version. Enjoy!

@@ -68,8 +68,7 @@ class SimpleHistory_SlackNotifierDropin
 
     public function __construct($sh = null)
     {
-        $this->sh = $sh
-        and $this->init();
+        $this->sh = $sh and $this->init();
     }
 
 

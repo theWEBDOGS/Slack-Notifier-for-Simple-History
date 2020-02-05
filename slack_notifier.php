@@ -5,7 +5,7 @@
  * Plugin URI: https://github.com/theWEBDOGS/Slack-Notifier-for-Simple-History
  * GitHub URI: https://github.com/theWEBDOGS/Slack-Notifier-for-Simple-History
  * Description: Send notifications for specific log events using a Slack webhook URL.
- * Version: 0.0.1
+ * Version: 0.0.2
  * Author: WEBDOGS
  */
 
