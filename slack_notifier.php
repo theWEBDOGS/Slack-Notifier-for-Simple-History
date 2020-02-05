@@ -5,7 +5,7 @@
  * Plugin URI: https://github.com/jvcanote/Slack-Notifier-for-Simple-History
  * GitHub URI: https://github.com/jvcanote/Slack-Notifier-for-Simple-History
  * Description: Send notifications for specific log events using a Slack webhook URL.
- * Version: 0.1
+ * Version: 0.0.2
  * Author: Jacob Vega/Canote
  */
 
@@ -55,6 +55,42 @@ if (version_compare(phpversion(), '5.4', '>=')) {
             });
         }
     });
+
+    register_activation_hook(__FILE__, function($network_wide) {
+
+        $notifier = new SimpleHistory_SlackNotifierDropin();
+        $settings = $notifier->get_settings();
+        $defaults = function () use($settings) {
+
+            foreach($settings as $setting) {
+                $option = SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX . $setting['name'];
+
+                if (is_null(get_option($option))) {
+                    set_option($option, $setting['setting_args']['default']);
+                }
+            }
+        };
+
+        // Check if the plugin
+        // is network-activated.
+        if ($network_wide) {
+
+            $site_ids = get_sites([
+                'fields'     => 'ids',
+                'network_id' => get_current_network_id(),
+            ]);
+
+            foreach ($site_ids as $site_id) {
+                switch_to_blog($site_id);
+                $defaults();
+                restore_current_blog();
+            }
+
+        } else {
+            $defaults();
+        }
+    });
+
 
 } else {
 
