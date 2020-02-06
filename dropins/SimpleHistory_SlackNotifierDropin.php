@@ -516,6 +516,11 @@ class SimpleHistory_SlackNotifierDropin
          */
         $loggers_user_can_read = $this->sh->getLoggersThatUserCanRead();
 
+        $tr_class = '';
+        if (isset($args['class'])) {
+            $tr_class = sprintf(' class="%s"', esc_attr($args['class']));
+        }
+
         include Self::FILE_PATH . 'templates/query-vars-fields.php';
     }
 

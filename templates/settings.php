@@ -12,24 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<form method="post" action="options.php" class="SimpleHistory__filters__form SimpleHistory__filters">
+            <form method="post" action="options.php" class="SimpleHistory__filters__form SimpleHistory__filters">
 
-    <?php
-    // Prints out all settings sections added to a particular settings page
-    do_settings_sections(SimpleHistory_SlackNotifierDropin::SETTINGS_MENU_SLUG);
-    ?>
+                <?php // Prints out all settings sections added to a particular settings page
+                do_settings_sections(SimpleHistory_SlackNotifierDropin::SETTINGS_MENU_SLUG); ?>
 
-    <?php
-    // Output nonce, action, and option_page fields
-    settings_fields(SimpleHistory_SlackNotifierDropin::SETTINGS_GENERAL_OPTION_GROUP);
-    ?>
+                <?php // Output nonce, action, and option_page fields
+                settings_fields(SimpleHistory_SlackNotifierDropin::SETTINGS_GENERAL_OPTION_GROUP); ?>
 
-    <?php submit_button(); ?>
+                <?php submit_button(); ?>
 
-</form>
+            </form>
 
-<script type="text/javascript">
-    (function($) {
-        $('body').addClass('SimpleHistory--isLoaded')
-    })(jQuery);
-</script>
+            <script type="text/javascript">
+                (function($) {
+                    $('body').addClass('SimpleHistory--isLoaded')
+                })(jQuery);
+            </script>
