@@ -460,9 +460,7 @@ class SimpleHistory_SlackNotifierDropin
                         $all_option_messages = array_merge($all_option_messages, $option_messages);
                     }
 
-                    foreach ($all_option_messages as $key => $val) {
-                        $all_option_messages[$key] = $logger_slug . ':' . $val;
-                    }
+                    $all_option_messages = wrap_each($all_option_messages, $logger_slug . ':');
 
                     $option_messages_string = implode(',', $all_option_messages);
                     $logger_messages[$option_key] = $option_messages_string;
@@ -471,9 +469,7 @@ class SimpleHistory_SlackNotifierDropin
                 // For each specific option
                 foreach ($logger_info['labels']['search']['options'] as $option_key => $option_messages) {
 
-                    foreach ($option_messages as $key => $val) {
-                        $option_messages[$key] = $logger_slug . ':' . $val;
-                    }
+                    $option_messages = wrap_each($option_messages, $logger_slug . ':');
 
                     $option_messages_string = implode(',', $option_messages);
                     $logger_messages[$option_key] = $option_messages_string;
@@ -778,22 +774,30 @@ class SimpleHistory_SlackNotifierDropin
             }
 
 
+            $loglevels = !is_array($settings['loglevels']) || empty($settings['loglevels']) ? null : $settings['loglevels'],
+            $messages  = !is_array($settings['messages'])  || empty($settings['messages'])  ? null : array_reduce(
+                array_keys($settings['messages']),
+                function ($messages, $logger_slug) use ($settings) {
+                    $logger_messages = wrap_each($settings['messages'][$logger_slug], $logger_slug . ':');
+                    $messages[]      = implode(',', $logger_messages);
+                    return $messages;
+                }, []
+            );
+
             // Log query arguments.
-            $log_query_args = wp_parse_args(
-                $this->get_query_vars(),
-                [
-                    'type'           => 'overview',
-                    'format'         => '',
-                    'posts_per_page' => '',
-                    'paged'          => '',
-                    'since_id'       => $since_id,
-                    'loglevels'      => null,
-                    'messages'       => null,
-                    'SimpleHistoryLogQuery-showDebug' => 0,
-                ]);
+            $log_query_args = [
+                'type'           => 'overview',
+                'format'         => '',
+                'posts_per_page' => '',
+                'paged'          => '',
+                'since_id'       => $since_id,
+                'loglevels'      => $loglevels,
+                'messages'       => $messages,
+                'SimpleHistoryLogQuery-showDebug' => 0,
+            ];
 
             // Encode log query arguments.
-            $log_query_args = base64_encode(http_build_query($log_query_args));
+            $log_query_args    = base64_encode(http_build_query($log_query_args));
 
             $callback          = Self::FILTER_HOOK_PREFIX . 'notify_slack';
             $network_blog      = sprintf('%d_%d_', get_current_network_id(), get_current_blog_id());
@@ -1061,7 +1065,7 @@ class SimpleHistory_SlackNotifierDropin
                         break;
                 }
 
-                $author_icon = '';
+                $author_icon     = '';
                 // Use site icon as the thumb for this event
                 if (function_exists('get_site_icon_url')) {
                     $author_icon = get_site_icon_url(512);
@@ -1078,7 +1082,7 @@ class SimpleHistory_SlackNotifierDropin
                 $item_permalink .= "#item/{$row->id}";
 
 
-                $occurrences[] = [
+                $occurrences[]   = [
 
                     'fallback'    => "{$initiator_text}: {$title}",
 
