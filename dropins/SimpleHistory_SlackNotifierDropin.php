@@ -405,7 +405,7 @@ class SimpleHistory_SlackNotifierDropin
          */
         return apply_filters(
             Self::FILTER_HOOK_PREFIX . 'notifiers',
-            [$saved_settings]
+            Self::is_public() ? [$saved_settings] : []
         );
     }
 
