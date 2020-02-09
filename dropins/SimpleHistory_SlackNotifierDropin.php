@@ -98,7 +98,7 @@ class SimpleHistory_SlackNotifierDropin
 
     public function enqueue_admin_scripts()
     {
-        wp_enqueue_style(Self::SETTINGS_OPTION_PREFIX . 'dropin', Self::FILE_URL . 'css/' . Self::SETTINGS_OPTION_PREFIX . 'dropin.css', null, SIMPLE_HISTORY_VERSION);         // wp_enqueue_script(Self::SETTINGS_OPTION_PREFIX . 'dropin', $file_url . Self::SETTINGS_OPTION_PREFIX . 'dropin.js', array( 'jquery' ), SIMPLE_HISTORY_VERSION, true);
+        wp_enqueue_style(Self::SETTINGS_OPTION_PREFIX . 'dropin', Self::FILE_URL . 'css/' . Self::SETTINGS_OPTION_PREFIX . 'dropin.css', null, SIMPLE_HISTORY_VERSION);
     }
 
 
@@ -209,21 +209,6 @@ class SimpleHistory_SlackNotifierDropin
                 ],
             ],
 
-            // Delay before notifications
-
-            [
-                'name'         => 'delay',
-                'title'        => __('Send notification...', 'simple-history'),
-                'callback'     => '_delay_settings_field_output',
-                'setting_args' => [
-                    'type'              => 'string',
-                    'description'       => __('An amount of time to delay sending notifications.', 'simple-history'),
-                    'sanitize_callback' => [$this, 'sanitize_' . Self::SLUG . '_delay'],
-                    'show_in_rest'      => false,
-                    'default'           => '+30 seconds',
-                ],
-            ],
-
             // Notifications query vars
 
             [
@@ -233,9 +218,24 @@ class SimpleHistory_SlackNotifierDropin
                 'setting_args' => [
                     'type'              => 'string',
                     'description'       => __('The query string used to filter which log occurrences will trigger the notifier.', 'simple-history'),
-                    'sanitize_callback' => 'serialize',
+                    'sanitize_callback' => 'http_build_query',
                     'show_in_rest'      => false,
-                    'default'           => 'a:2:{s:9:"loglevels";a:0:{}s:8:"messages";a:0:{}}',
+                    'default'           => 'loglevels[]&messages[]',
+                ],
+            ],
+
+            // Delay before notifications
+
+            [
+                'name'         => 'delay',
+                'title'        => __('Occurrence cutoff', 'simple-history'),
+                'callback'     => '_delay_settings_field_output',
+                'setting_args' => [
+                    'type'              => 'string',
+                    'description'       => __('An amount of time to delay sending notifications.', 'simple-history'),
+                    'sanitize_callback' => [$this, 'sanitize_' . Self::SLUG . '_delay'],
+                    'show_in_rest'      => false,
+                    'default'           => '+30 seconds',
                 ],
             ],
         ];
@@ -304,21 +304,6 @@ class SimpleHistory_SlackNotifierDropin
 
 
     /**
-     * Get the delay interval.
-     *
-     * @return string duration
-     * @example      '+420 minutes'
-     * @uses          strtotime
-     */
-    protected static function get_delay()
-    {
-        return get_option(Self::SETTINGS_OPTION_PREFIX . 'delay');
-    }
-
-
-
-
-    /**
      * Get the query vars.
      *
      * @return array params for SimpleHistoryLogQuery::query().
@@ -326,7 +311,6 @@ class SimpleHistory_SlackNotifierDropin
     protected static function get_query_vars(string $var = null)
     {
         $notifier_query_vars = get_option(Self::SETTINGS_OPTION_PREFIX . 'query_vars');
-        $notifier_query_vars = unserialize($notifier_query_vars);
         $notifier_query_vars = wp_parse_args($notifier_query_vars, [
             'loglevels' => [],
             'messages'  => [],
@@ -343,6 +327,21 @@ class SimpleHistory_SlackNotifierDropin
 
 
     /**
+     * Get the delay interval.
+     *
+     * @return string duration
+     * @example      '+420 minutes'
+     * @uses          strtotime
+     */
+    protected static function get_delay()
+    {
+        return get_option(Self::SETTINGS_OPTION_PREFIX . 'delay');
+    }
+
+
+
+
+    /**
      * Get all settings.
      *
      * @return array settings
@@ -352,9 +351,9 @@ class SimpleHistory_SlackNotifierDropin
         $settings = [
             'enabled'     => Self::is_enabled(),
             'webhook_url' => Self::get_webhook_url(),
-            'delay'       => Self::get_delay(),
             'loglevels'   => Self::get_query_vars('loglevels'),
             'messages'    => Self::get_query_vars('messages'),
+            'delay'       => Self::get_delay(),
         ];
 
         foreach (['loglevels', 'messages'] as $setting) {
@@ -414,6 +413,82 @@ class SimpleHistory_SlackNotifierDropin
 
 
     /**
+     * Get messages field options.
+     *
+     * @return array notifiers
+     */
+    public function get_messages_field_options()
+    {
+        /**
+         * Loggers the current user has access to read.
+         *
+         * @param array Array with loggers that user can read.
+         */
+        $loggers_user_can_read = $this->sh->getLoggersThatUserCanRead();
+
+
+        /**
+         * Logger messages the current user has access to read.
+         *
+         * @param array Array of option values for the messages field.
+         */
+        $messages_field_options = [];
+
+
+        foreach ($loggers_user_can_read as $logger) {
+            $logger_info = $logger['instance']->getInfo();
+            $logger_slug = $logger['instance']->slug;
+
+            // Array with messages
+            $logger_messages = [];
+
+            // Get messages for logger
+            if (isset($logger_info['labels']['search'])) {
+
+                // Label for option group
+                $logger_label = $logger_info['labels']['search']['label'];
+
+                // All activity
+                if (!empty($logger_info['labels']['search']['label_all'])) {
+
+                    $option_key = $logger_info['labels']['search']['label_all'];
+
+                    // Array with 'all messages' option
+                    $all_option_messages = [];
+
+                    foreach ($logger_info['labels']['search']['options'] as $option_messages) {
+                        $all_option_messages = array_merge($all_option_messages, $option_messages);
+                    }
+
+                    foreach ($all_option_messages as $key => $val) {
+                        $all_option_messages[$key] = $logger_slug . ':' . $val;
+                    }
+
+                    $option_messages_string = implode(',', $all_option_messages);
+                    $logger_messages[$option_key] = $option_messages_string;
+                }
+
+                // For each specific option
+                foreach ($logger_info['labels']['search']['options'] as $option_key => $option_messages) {
+
+                    foreach ($option_messages as $key => $val) {
+                        $option_messages[$key] = $logger_slug . ':' . $val;
+                    }
+
+                    $option_messages_string = implode(',', $option_messages);
+                    $logger_messages[$option_key] = $option_messages_string;
+                }
+                $messages_field_options[$logger_label] = $logger_messages;
+            }
+        }
+
+        return $messages_field_options;
+    }
+
+
+
+
+    /**
      * Sanitize delay settings
      */
     public function sanitize_slack_notifier_delay($field)
@@ -435,6 +510,9 @@ class SimpleHistory_SlackNotifierDropin
 
 
 
+    /**
+     * Output for settings section.
+     */
     public function slack_notifier_settings_section_output()
     {
         include Self::FILE_PATH . 'templates/section.php';
@@ -443,6 +521,9 @@ class SimpleHistory_SlackNotifierDropin
 
 
 
+    /**
+     * Output for settings field.
+     */
     public function slack_notifier_enabled_settings_field_output()
     {
         /**
@@ -450,7 +531,8 @@ class SimpleHistory_SlackNotifierDropin
          *
          * @param boolean enabled.
          */
-        $notifier_enabled = Self::is_enabled(); // print_r($notifier_enabled);
+        $notifier_enabled = Self::is_enabled();
+
 
         include Self::FILE_PATH . 'templates/enabled-field.php';
     }
@@ -458,6 +540,9 @@ class SimpleHistory_SlackNotifierDropin
 
 
 
+    /**
+     * Output for settings field.
+     */
     public function slack_notifier_webhook_url_settings_field_output()
     {
         /**
@@ -465,7 +550,8 @@ class SimpleHistory_SlackNotifierDropin
          *
          * @param string URL.
          */
-        $notifier_webhook_url = Self::get_webhook_url(); // print_r($notifier_webhook_url);
+        $notifier_webhook_url = Self::get_webhook_url();
+
 
         include Self::FILE_PATH . 'templates/webhook-url-field.php';
     }
@@ -473,21 +559,9 @@ class SimpleHistory_SlackNotifierDropin
 
 
 
-    public function slack_notifier_delay_settings_field_output()
-    {
-        /**
-         * Notification delay duration.
-         *
-         * @param string delay.
-         */
-        $notifier_delay = Self::get_delay(); // print_r($notifier_delay);
-
-        include Self::FILE_PATH . 'templates/delay-field.php';
-    }
-
-
-
-
+    /**
+     * Output for settings field.
+     */
     public function slack_notifier_query_vars_settings_field_output($args)
     {
         /**
@@ -495,7 +569,8 @@ class SimpleHistory_SlackNotifierDropin
          *
          * @param array Array with loglevel sugs. Default empty = show all.
          */
-        $notifier_query_loglevels = Self::get_query_vars('loglevels'); // print_r($notifier_query_loglevels);
+        $notifier_query_loglevels = Self::get_query_vars('loglevels');
+
 
         /**
          * Notifier query messages.
@@ -507,16 +582,45 @@ class SimpleHistory_SlackNotifierDropin
          *
          * @param array Array with log message slugs. Default empty = show all.
          */
-        $notifier_query_messages = Self::get_query_vars('messages'); // print_r($notifier_query_messages);
+        $notifier_query_messages = Self::get_query_vars('messages');
+
 
         /**
-         * Loggers the current user has access to read.
+         * Logger messages the current user has access to read.
          *
-         * @param array Array with loggers that user can read.
+         * @param array Array of logger message option values.
          */
-        $loggers_user_can_read = $this->sh->getLoggersThatUserCanRead();
+        $messages_field_options = $this->get_messages_field_options();
+
+
+        /**
+         * 'class' attribute for table row.
+         *
+         * @param string empty string if not in args.
+         */
+        $class = isset($args['class']) ? sprintf(' class="%s"', esc_attr($args['class'])) : '';
+
 
         include Self::FILE_PATH . 'templates/query-vars-fields.php';
+    }
+
+
+
+
+    /**
+     * Output for settings field.
+     */
+    public function slack_notifier_delay_settings_field_output()
+    {
+        /**
+         * Notification delay duration.
+         *
+         * @param string delay.
+         */
+        $notifier_delay = Self::get_delay();
+
+
+        include Self::FILE_PATH . 'templates/delay-field.php';
     }
 
 
@@ -674,35 +778,22 @@ class SimpleHistory_SlackNotifierDropin
             }
 
 
-            $loglevels = !is_array($settings['loglevels']) || empty($settings['loglevels']) ? null : $settings['loglevels'];
-            $messages  = !is_array($settings['messages'])  || empty($settings['messages'])  ? null : array_reduce(
-                array_keys($settings['messages']),
-                function ($messages, $logger) use ($settings) {
-                    $logger_messages = [];
-                    foreach ($settings['messages'][$logger] as $message) {
-                        $logger_messages[] = $logger . ':' . $message;
-                    }
-                    $messages[] = implode(',', $logger_messages);
-                    return $messages;
-                },
-                []
-            );
-
-
             // Log query arguments.
-            $log_query_args = [
-                'type'           => 'overview',
-                'format'         => '',
-                'posts_per_page' => '',
-                'paged'          => '',
-                'since_id'       => $since_id,
-                'loglevels'      => $loglevels,
-                'messages'       => $messages,
-                'SimpleHistoryLogQuery-showDebug' => 0,
-            ];
+            $log_query_args = wp_parse_args(
+                $this->get_query_vars(),
+                [
+                    'type'           => 'overview',
+                    'format'         => '',
+                    'posts_per_page' => '',
+                    'paged'          => '',
+                    'since_id'       => $since_id,
+                    'loglevels'      => null,
+                    'messages'       => null,
+                    'SimpleHistoryLogQuery-showDebug' => 0,
+                ]);
 
             // Encode log query arguments.
-            $log_query_args = base64_encode(serialize($log_query_args));
+            $log_query_args = base64_encode(http_build_query($log_query_args));
 
             $callback          = Self::FILTER_HOOK_PREFIX . 'notify_slack';
             $network_blog      = sprintf('%d_%d_', get_current_network_id(), get_current_blog_id());
@@ -826,14 +917,11 @@ class SimpleHistory_SlackNotifierDropin
             delete_transient($transient_key);
 
 
-            // Valid stored log query arguments.
-            $log_query_args = $stored_query_args;
-
-            // Decode log query arguments.
-            $log_query_args = unserialize(base64_decode($log_query_args));
+            // Decode stored log query arguments.
+            $log_query_args = base64_decode($stored_query_args);
 
             // Bail if empty or invalid log query arguments.
-            if (empty($log_query_args) || !is_array($log_query_args)) {
+            if (empty($log_query_args)) {
                 continue;
             }
 

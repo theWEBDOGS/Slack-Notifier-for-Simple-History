@@ -12,7 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-    <p>
-        <?php _e('Post logged events to a Slack channel.', 'simple-history') ?>
-        <?php _e('Only share with trusted channels. Notices can contain sensitive or confidential information.', 'simple-history') ?>
-    </p>
+                <p><?php _e('Post logged events to a Slack channel.', 'simple-history') ?> <?php _e('Only share with trusted channels. Notices can contain sensitive or confidential information.', 'simple-history') ?></p>
+
+                <?php ?>
