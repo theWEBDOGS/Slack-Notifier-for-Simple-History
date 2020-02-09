@@ -1,5 +1,24 @@
 <?php
 
+if (!function_exists('wrap_each')) {
+    /**
+     * Wrap each value in an array of strings.
+     *
+     * @param	array	$array
+     * @param	string	$prepend_string	string to prepend 
+     * @param	string	$append_string	string to append
+     * @return	array	new values
+     */
+    function wrap_each(array $array, $prepend_string = '', $append_string = '')
+    {
+        $new_array = [];
+        foreach ($array as $key => $string) {
+            $new_array[$key] = (string) $prepend_string . (string) $string . (string) $append_string;
+        }
+        return $new_array;
+    }
+}
+
 if (!function_exists('array_md5')) {
     /**
      * Return the md5 hash string for multi-dimensional array.
