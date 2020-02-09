@@ -601,6 +601,11 @@ class SimpleHistory_SlackNotifierDropin
         $class = isset($args['class']) ? sprintf(' class="%s"', esc_attr($args['class'])) : '';
 
 
+        $tr_class = '';
+        if (isset($args['class'])) {
+            $tr_class = sprintf(' class="%s"', esc_attr($args['class']));
+        }
+
         include Self::FILE_PATH . 'templates/query-vars-fields.php';
     }
 
