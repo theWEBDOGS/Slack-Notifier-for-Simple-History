@@ -774,7 +774,7 @@ class SimpleHistory_SlackNotifierDropin
             }
 
 
-            $loglevels = !is_array($settings['loglevels']) || empty($settings['loglevels']) ? null : $settings['loglevels'],
+            $loglevels = !is_array($settings['loglevels']) || empty($settings['loglevels']) ? null : $settings['loglevels'];
             $messages  = !is_array($settings['messages'])  || empty($settings['messages'])  ? null : array_reduce(
                 array_keys($settings['messages']),
                 function ($messages, $logger_slug) use ($settings) {
