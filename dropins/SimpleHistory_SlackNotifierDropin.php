@@ -133,6 +133,9 @@ class SimpleHistory_SlackNotifierDropin
                 Self::SETTINGS_OPTION_PREFIX . $setting['name'],
                 $setting['setting_args']
             );
+
+            // Add the default value
+            Self::add_default_setting($setting);
         }
 
         /**
@@ -177,7 +180,7 @@ class SimpleHistory_SlackNotifierDropin
      */
     public function get_settings()
     {
-        $setting = [
+        $settings = [
 
             // Enable/Disabled notifications
 
@@ -218,9 +221,9 @@ class SimpleHistory_SlackNotifierDropin
                 'setting_args' => [
                     'type'              => 'string',
                     'description'       => __('The query string used to filter which log occurrences will trigger the notifier.', 'simple-history'),
-                    'sanitize_callback' => 'http_build_query',
+                    'sanitize_callback' => [$this, 'sanitize_' . Self::SLUG . '_query_vars'],
                     'show_in_rest'      => false,
-                    'default'           => 'loglevels[]&messages[]',
+                    'default'           => ['loglevels' => [''], 'messages' => ['']],
                 ],
             ],
 
@@ -240,7 +243,7 @@ class SimpleHistory_SlackNotifierDropin
             ],
         ];
 
-        return $setting;
+        return $settings;
     }
 
 
@@ -388,6 +391,27 @@ class SimpleHistory_SlackNotifierDropin
 
 
     /**
+     * Add the default value for an individual setting.
+     */
+    protected static function add_default_setting($setting) {
+
+        $option = Self::SETTINGS_OPTION_PREFIX . $setting['name'];
+
+        if (defined('SIMPLE_HISTORY_SLACK_NOTIFIER_NETWORK_ACTIVATION')) {
+
+            do_action('simple_history/slack_notifier/add_default_setting_network_wide', $setting, $option);
+
+        } else {
+
+            do_action('simple_history/slack_notifier/add_default_setting', $setting, $option);
+
+        }
+    }
+
+
+
+
+    /**
      * Get notifiers settings.
      *
      * @return array notifiers
@@ -490,6 +514,25 @@ class SimpleHistory_SlackNotifierDropin
     public function sanitize_slack_notifier_delay($field)
     {
         return !empty($field) && is_string($field) && in_array($field, ['+10 seconds', '+30 seconds', '+1 minute', '+5 minutes', '+30 minutes', '+1 hour', '+1 day']) ? $field : '+30 seconds';
+    }
+
+
+
+
+    /**
+     * Sanitize query vars settings
+     */
+    public function sanitize_slack_notifier_query_vars($field)
+    {
+        if (empty($field)) {
+            $field = ['loglevels' => [''], 'messages' => ['']];
+        }
+
+        if (is_array($field)) {
+            $field = http_build_query($field);
+        }
+
+        return $field;
     }
 
 
