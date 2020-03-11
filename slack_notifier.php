@@ -56,39 +56,48 @@ if (version_compare(phpversion(), '5.4', '>=')) {
         }
     });
 
+    /**
+     * Add the default value for an individual setting.
+     */
+    add_action('simple_history/slack_notifier/add_default_setting', function($setting, $option) {
+
+        add_option($option, get_option($option, $setting['setting_args']['default']));
+
+    }, 10, 2 );
+
+    /**
+     * Add the default value for an individual setting on
+     * each site in the network.
+     */
+    add_action('simple_history/slack_notifier/add_default_setting_network_wide', function($setting, $option) {
+
+        $site_ids = get_sites([
+            'fields'     => 'ids',
+            'network_id' => get_current_network_id(),
+        ]);
+
+        foreach ($site_ids as $site_id) {
+
+            switch_to_blog($site_id);
+                do_action('simple_history/slack_notifier/add_default_setting', $setting, $option);
+            restore_current_blog();
+
+        }
+    }, 10, 2 );
+
     register_activation_hook(__FILE__, function($network_wide) {
 
-        $notifier = new SimpleHistory_SlackNotifierDropin();
-        $settings = $notifier->get_settings();
-        $defaults = function () use($settings) {
-
-            foreach($settings as $setting) {
-                $option = SimpleHistory_SlackNotifierDropin::SETTINGS_OPTION_PREFIX . $setting['name'];
-
-                if (is_null(get_option($option))) {
-                    set_option($option, $setting['setting_args']['default']);
-                }
-            }
-        };
-
-        // Check if the plugin
-        // is network-activated.
         if ($network_wide) {
 
-            $site_ids = get_sites([
-                'fields'     => 'ids',
-                'network_id' => get_current_network_id(),
-            ]);
+            if (!defined('SIMPLE_HISTORY_SLACK_NOTIFIER_NETWORK_ACTIVATION')) {
 
-            foreach ($site_ids as $site_id) {
-                switch_to_blog($site_id);
-                $defaults();
-                restore_current_blog();
+                define('SIMPLE_HISTORY_SLACK_NOTIFIER_NETWORK_ACTIVATION', true);
             }
-
-        } else {
-            $defaults();
         }
+
+        // Register settings
+        $notifier = new SimpleHistory_SlackNotifierDropin();
+        $notifier->add_settings();
     });
 
 
