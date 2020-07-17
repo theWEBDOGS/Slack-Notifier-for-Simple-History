@@ -206,7 +206,7 @@ class SimpleHistory_SlackNotifierDropin
                 'setting_args' => [
                     'type'              => 'string',
                     'description'       => __('The webhook URL for posting the notifications.', 'simple-history'),
-                    'sanitize_callback' => 'sanitize_url',
+                    'sanitize_callback' => 'esc_url_raw',
                     'show_in_rest'      => false,
                     'default'           => '',
                 ],
