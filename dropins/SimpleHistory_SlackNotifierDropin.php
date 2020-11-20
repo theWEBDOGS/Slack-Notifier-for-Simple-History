@@ -437,16 +437,34 @@ class SimpleHistory_SlackNotifierDropin
 
 
     /**
+     * Get loglevels field options.
+     *
+     * @return array loglevels
+     */
+    public function get_loglevels_field_options()
+    {
+        /**
+         * Loggers log levels reflection class object.
+         *
+         * @var ReflectionClass SimpleLoggerLogLevels reflection class object.
+         */
+          $loggers_log_levels = new ReflectionClass('SimpleLoggerLogLevels');
+
+
+          return array_values($loggers_log_levels->getConstants());
+    }
+
+    /**
      * Get messages field options.
      *
-     * @return array notifiers
+     * @return array messages
      */
     public function get_messages_field_options()
     {
         /**
          * Loggers the current user has access to read.
          *
-         * @param array Array with loggers that user can read.
+         * @var array Array with loggers that user can read.
          */
         $loggers_user_can_read = $this->sh->getLoggersThatUserCanRead();
 
@@ -454,7 +472,7 @@ class SimpleHistory_SlackNotifierDropin
         /**
          * Logger messages the current user has access to read.
          *
-         * @param array Array of option values for the messages field.
+         * @var array Array of option values for the messages field.
          */
         $messages_field_options = [];
 
@@ -568,7 +586,7 @@ class SimpleHistory_SlackNotifierDropin
         /**
          * Enable notifier.
          *
-         * @param boolean enabled.
+         * @var boolean enabled.
          */
         $notifier_enabled = Self::is_enabled();
 
@@ -587,7 +605,7 @@ class SimpleHistory_SlackNotifierDropin
         /**
          * Notification webhook URL.
          *
-         * @param string URL.
+         * @var string URL.
          */
         $notifier_webhook_url = Self::get_webhook_url();
 
@@ -606,9 +624,17 @@ class SimpleHistory_SlackNotifierDropin
         /**
          * Filter to control what the default loglevels are.
          *
-         * @param array Array with loglevel sugs. Default empty = show all.
+         * @var array Array with loglevel slugs. Default empty = show all.
          */
         $notifier_query_loglevels = Self::get_query_vars('loglevels');
+
+
+        /**
+         * Log level option values.
+         *
+         * @var array Array of loglevels option values.
+         */
+        $loglevels_field_options = $this->get_loglevels_field_options();
 
 
         /**
@@ -619,7 +645,7 @@ class SimpleHistory_SlackNotifierDropin
          *  - SimplePluginLogger:plugin_activated
          *  - SimpleCommentsLogger:user_comment_added
          *
-         * @param array Array with log message slugs. Default empty = show all.
+         * @var array Array with log message slugs. Default empty = show all.
          */
         $notifier_query_messages = Self::get_query_vars('messages');
 
@@ -627,7 +653,7 @@ class SimpleHistory_SlackNotifierDropin
         /**
          * Logger messages the current user has access to read.
          *
-         * @param array Array of logger message option values.
+         * @var array Array of logger message option values.
          */
         $messages_field_options = $this->get_messages_field_options();
 
@@ -635,7 +661,7 @@ class SimpleHistory_SlackNotifierDropin
         /**
          * 'class' attribute for table row.
          *
-         * @param string empty string if not in args.
+         * @var string empty string if not in args.
          */
         $class = isset($args['class']) ? sprintf(' class="%s"', esc_attr($args['class'])) : '';
 
@@ -654,7 +680,7 @@ class SimpleHistory_SlackNotifierDropin
         /**
          * Notification delay duration.
          *
-         * @param string delay.
+         * @var string delay.
          */
         $notifier_delay = Self::get_delay();
 

@@ -23,6 +23,11 @@ you can leverage Slack to see what is happening on any sites you are using Simpl
 
 ## Changelog
 
+= 0.0.3 (November 2020) =
+
+- Patch placeholder for query vars fields.
+- Select all log levels when setting is blank.
+
 = 0.0.2 (February 2020) =
 
 - Add multisite support.
